@@ -4,8 +4,8 @@ import React, { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
-import { Plus, Minus, ShoppingBag, ArrowRight, ShieldCheck, Truck, Sparkles } from "lucide-react";
-import { DEHI_PRODUCT } from "@/types";
+import { ShoppingBag, ArrowRight, ShieldCheck, Truck, Sparkles, Check } from "lucide-react";
+import { DEHI_PRODUCT, QUANTITY_OFFERS, ValidQuantity, getQuantityPricing } from "@/types";
 import { formatPrice } from "@/lib/utils";
 import { useCart } from "@/context/CartContext";
 
@@ -17,15 +17,14 @@ const ANGLES = [
 
 export default function ProductShowcase() {
   const [activeAngleIndex, setActiveAngleIndex] = useState(0);
-  const [localQty, setLocalQty] = useState(1);
+  const [selectedQty, setSelectedQty] = useState<ValidQuantity>(1);
   const [isZoomed, setIsZoomed] = useState(false);
   const { addToCart } = useCart();
 
-  const handleIncrement = () => setLocalQty((prev) => Math.min(prev + 1, 10));
-  const handleDecrement = () => setLocalQty((prev) => Math.max(prev - 1, 1));
+  const activePricing = getQuantityPricing(selectedQty);
 
   const handleAddToCart = () => {
-    addToCart(localQty);
+    addToCart(selectedQty);
   };
 
   return (
@@ -98,7 +97,7 @@ export default function ProductShowcase() {
                 <button
                   key={angle.id}
                   onClick={() => setActiveAngleIndex(idx)}
-                  className={`relative w-20 h-20 sm:w-24 sm:h-24 p-2 rounded-xl border transition-all duration-200 bg-dehi-ivory/80 ${
+                  className={`relative w-20 h-20 sm:w-24 sm:h-24 p-2 rounded-xl border transition-all duration-200 bg-dehi-ivory/80 cursor-pointer ${
                     activeAngleIndex === idx
                       ? "border-dehi-gold shadow-luxury-gold ring-1 ring-dehi-gold"
                       : "border-dehi-gold/30 opacity-70 hover:opacity-100 hover:border-dehi-gold/60"
@@ -130,75 +129,124 @@ export default function ProductShowcase() {
               {DEHI_PRODUCT.name}
             </h3>
 
-            <p className="text-sm font-medium text-dehi-brown mb-6">
+            <p className="text-sm font-medium text-dehi-brown mb-4">
               Size: {DEHI_PRODUCT.size}
             </p>
 
-            <p className="text-base text-dehi-charcoal/80 font-light leading-relaxed mb-8">
+            <p className="text-base text-dehi-charcoal/80 font-light leading-relaxed mb-6">
               {DEHI_PRODUCT.description}
             </p>
 
-            {/* Price Box */}
-            <div className="w-full p-5 rounded-2xl bg-dehi-ivory border border-dehi-gold/30 shadow-luxury mb-8">
-              <div className="flex items-baseline justify-between mb-4 pb-4 border-b border-dehi-gold/20">
+            {/* Price & Quantity Offer Box */}
+            <div className="w-full p-5 sm:p-6 rounded-2xl bg-dehi-ivory border border-dehi-gold/30 shadow-luxury mb-8">
+              {/* Header Price Info */}
+              <div className="flex items-baseline justify-between mb-5 pb-4 border-b border-dehi-gold/20">
                 <div className="flex items-baseline gap-3">
                   <span className="text-3xl sm:text-4xl font-serif font-bold text-dehi-charcoal">
-                    {formatPrice(DEHI_PRODUCT.price)}
+                    {formatPrice(activePricing.price)}
                   </span>
-                  <span className="text-base text-dehi-charcoal/50 line-through">
-                    {formatPrice(DEHI_PRODUCT.mrp)}
-                  </span>
+                  {selectedQty === 1 ? (
+                    <span className="text-base text-dehi-charcoal/50 line-through">
+                      {formatPrice(DEHI_PRODUCT.mrp)}
+                    </span>
+                  ) : (
+                    <span className="text-base text-dehi-charcoal/50 line-through">
+                      {formatPrice(activePricing.baseTotal)}
+                    </span>
+                  )}
                 </div>
-                <span className="px-3 py-1 text-xs font-bold uppercase tracking-wider rounded-md bg-dehi-botanical/15 text-dehi-botanical border border-dehi-botanical/30">
-                  Save {formatPrice(DEHI_PRODUCT.discount)}
-                </span>
+                {selectedQty > 1 ? (
+                  <span className="px-3 py-1 text-xs font-bold uppercase tracking-wider rounded-md bg-dehi-botanical/15 text-dehi-botanical border border-dehi-botanical/30">
+                    Save {formatPrice(activePricing.savings)}
+                  </span>
+                ) : (
+                  <span className="px-3 py-1 text-xs font-bold uppercase tracking-wider rounded-md bg-dehi-botanical/15 text-dehi-botanical border border-dehi-botanical/30">
+                    Save {formatPrice(DEHI_PRODUCT.discount)}
+                  </span>
+                )}
               </div>
 
-              {/* Quantity Selector & Action Buttons */}
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium text-dehi-charcoal/80">
-                    Quantity
-                  </span>
-                  <div className="flex items-center gap-3 bg-dehi-softcream rounded-full px-3 py-1.5 border border-dehi-gold/30">
-                    <button
-                      onClick={handleDecrement}
-                      className="w-7 h-7 rounded-full bg-dehi-ivory text-dehi-charcoal hover:bg-dehi-gold hover:text-white flex items-center justify-center transition-colors shadow-xs"
-                      aria-label="Decrease quantity"
-                    >
-                      <Minus className="w-3.5 h-3.5" />
-                    </button>
-                    <span className="font-semibold text-sm w-6 text-center text-dehi-charcoal">
-                      {localQty}
-                    </span>
-                    <button
-                      onClick={handleIncrement}
-                      className="w-7 h-7 rounded-full bg-dehi-ivory text-dehi-charcoal hover:bg-dehi-gold hover:text-white flex items-center justify-center transition-colors shadow-xs"
-                      aria-label="Increase quantity"
-                    >
-                      <Plus className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                </div>
+              {/* Quantity Offers Selector */}
+              <div className="space-y-3 mb-6">
+                <span className="block text-xs font-bold uppercase tracking-wider text-dehi-charcoal/80">
+                  Choose Your Quantity
+                </span>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
-                  <button
-                    onClick={handleAddToCart}
-                    className="inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-full bg-dehi-cream hover:bg-dehi-ivory text-dehi-charcoal text-sm font-medium border border-dehi-gold/50 shadow-sm transition-all duration-200 group"
-                  >
-                    <ShoppingBag className="w-4 h-4 text-dehi-gold-dark group-hover:scale-110 transition-transform" />
-                    <span>Add to Cart</span>
-                  </button>
+                <div className="grid grid-cols-1 gap-2.5">
+                  {QUANTITY_OFFERS.map((offer) => {
+                    const isSelected = selectedQty === offer.quantity;
+                    return (
+                      <button
+                        key={offer.quantity}
+                        type="button"
+                        onClick={() => setSelectedQty(offer.quantity)}
+                        className={`w-full text-left p-3 sm:p-3.5 rounded-xl border transition-all duration-200 flex items-center justify-between cursor-pointer ${
+                          isSelected
+                            ? "bg-dehi-softcream border-dehi-gold shadow-luxury-gold ring-1 ring-dehi-gold"
+                            : "bg-dehi-ivory/80 border-dehi-gold/25 hover:border-dehi-gold/50 hover:bg-dehi-softcream/40"
+                        }`}
+                      >
+                        <div className="flex items-center gap-3">
+                          <div
+                            className={`w-4 h-4 rounded-full border flex items-center justify-center transition-colors shrink-0 ${
+                              isSelected
+                                ? "border-dehi-gold-dark bg-dehi-gold-dark"
+                                : "border-dehi-gold/50 bg-dehi-ivory"
+                            }`}
+                          >
+                            {isSelected && <div className="w-1.5 h-1.5 rounded-full bg-dehi-ivory" />}
+                          </div>
+                          <div>
+                            <span className="text-sm font-semibold text-dehi-charcoal block">
+                              {offer.title}
+                            </span>
+                            <span className="text-xs text-dehi-charcoal/60">
+                              {offer.quantity === 1
+                                ? "Single Bottle (200 mL)"
+                                : `${offer.quantity} × Dehi Body Wash (200 mL)`}
+                            </span>
+                          </div>
+                        </div>
 
-                  <Link
-                    href="/checkout"
-                    onClick={() => addToCart(localQty)}
-                    className="inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-full bg-dehi-charcoal hover:bg-dehi-gold hover:text-dehi-charcoal text-dehi-ivory text-sm font-medium shadow-md transition-all duration-200 group"
-                  >
-                    <span>Buy Now</span>
-                    <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-                  </Link>
+                        <div className="text-right shrink-0">
+                          <div className="text-sm font-bold text-dehi-charcoal">
+                            {formatPrice(offer.price)}
+                          </div>
+                          {offer.savingsLabel ? (
+                            <span className="text-[11px] font-bold text-emerald-700 block">
+                              {offer.savingsLabel}
+                            </span>
+                          ) : (
+                            <span className="text-[11px] text-dehi-charcoal/50 block">
+                              Base Price
+                            </span>
+                          )}
+                        </div>
+                      </button>
+                    );
+                  })}
                 </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={handleAddToCart}
+                  className="inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-full bg-dehi-cream hover:bg-dehi-ivory text-dehi-charcoal text-sm font-medium border border-dehi-gold/50 shadow-sm transition-all duration-200 group cursor-pointer"
+                >
+                  <ShoppingBag className="w-4 h-4 text-dehi-gold-dark group-hover:scale-110 transition-transform" />
+                  <span>Add to Cart</span>
+                </button>
+
+                <Link
+                  href="/checkout"
+                  onClick={() => addToCart(selectedQty)}
+                  className="inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-full bg-dehi-charcoal hover:bg-dehi-gold hover:text-dehi-charcoal text-dehi-ivory text-sm font-medium shadow-md transition-all duration-200 group"
+                >
+                  <span>Buy Now</span>
+                  <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                </Link>
               </div>
             </div>
 

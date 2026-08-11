@@ -21,6 +21,64 @@ export interface CartItem {
   quantity: number;
 }
 
+export type ValidQuantity = 1 | 2 | 3;
+
+export const QUANTITY_PRICING: Record<ValidQuantity, number> = {
+  1: 399,
+  2: 699,
+  3: 999,
+} as const;
+
+export interface QuantityOffer {
+  quantity: ValidQuantity;
+  title: string;
+  price: number;
+  baseTotal: number;
+  savings: number;
+  savingsLabel?: string;
+  popular?: boolean;
+}
+
+export const QUANTITY_OFFERS: QuantityOffer[] = [
+  {
+    quantity: 1,
+    title: "1 Body Wash",
+    price: 399,
+    baseTotal: 399,
+    savings: 0,
+  },
+  {
+    quantity: 2,
+    title: "2 Body Washes",
+    price: 699,
+    baseTotal: 798,
+    savings: 99,
+    savingsLabel: "Save ₹99",
+    popular: true,
+  },
+  {
+    quantity: 3,
+    title: "3 Body Washes",
+    price: 999,
+    baseTotal: 1197,
+    savings: 198,
+    savingsLabel: "Save ₹198",
+  },
+];
+
+export function getQuantityPricing(qty: number): {
+  quantity: ValidQuantity;
+  price: number;
+  savings: number;
+  baseTotal: number;
+} {
+  const quantity = (Math.max(1, Math.min(3, qty || 1))) as ValidQuantity;
+  const price = QUANTITY_PRICING[quantity] || 399;
+  const baseTotal = quantity * 399;
+  const savings = baseTotal - price;
+  return { quantity, price, savings, baseTotal };
+}
+
 export interface CustomerDetails {
   fullName: string;
   phone: string;
@@ -29,7 +87,7 @@ export interface CustomerDetails {
   city: string;
   state: string;
   pincode: string;
-  paymentMethod: 'upi' | 'card' | 'netbanking';
+  paymentMethod?: string;
 }
 
 export interface OrderConfirmation {
@@ -66,3 +124,49 @@ export const DEHI_PRODUCT: Product = {
     "Suitable for Daily Use",
   ],
 };
+
+export interface DbOrder {
+  id: string;
+  order_number: string;
+  full_name: string;
+  phone: string;
+  email: string;
+  address: string;
+  city: string;
+  state: string;
+  pincode: string;
+  product_name: string;
+  product_size: string;
+  quantity: number;
+  total_price: number;
+  status: string;
+  admin_note?: string | null;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface OrderInsertPayload {
+  order_number: string;
+  full_name: string;
+  phone: string;
+  email: string;
+  address: string;
+  city: string;
+  state: string;
+  pincode: string;
+  product_name: string;
+  product_size: string;
+  quantity: ValidQuantity;
+  total_price: number;
+  status: string;
+  admin_note?: string | null;
+}
+
+export interface OrderApiResponse {
+  success: boolean;
+  orderId?: string;
+  orderNumber?: string;
+  quantity?: number;
+  totalPrice?: number;
+  error?: string;
+}

@@ -19,6 +19,7 @@ export default function CartDrawer() {
     subtotal,
     mrpTotal,
     savingsTotal,
+    bundleSavings,
     addToCart,
   } = useCart();
 
@@ -105,8 +106,10 @@ export default function CartDrawer() {
                       <div className="flex items-center justify-between mt-3">
                         <div className="flex items-center gap-2 bg-dehi-ivory rounded-full px-2.5 py-1 border border-dehi-gold/30">
                           <button
-                            onClick={() => updateQuantity(quantity - 1)}
-                            className="text-dehi-charcoal hover:text-dehi-gold p-0.5"
+                            type="button"
+                            onClick={() => updateQuantity(Math.max(quantity - 1, 1))}
+                            disabled={quantity <= 1}
+                            className="text-dehi-charcoal hover:text-dehi-gold p-0.5 disabled:opacity-40 cursor-pointer"
                             aria-label="Decrease quantity"
                           >
                             <Minus className="w-3 h-3" />
@@ -115,8 +118,10 @@ export default function CartDrawer() {
                             {quantity}
                           </span>
                           <button
-                            onClick={() => updateQuantity(quantity + 1)}
-                            className="text-dehi-charcoal hover:text-dehi-gold p-0.5"
+                            type="button"
+                            onClick={() => updateQuantity(Math.min(quantity + 1, 3))}
+                            disabled={quantity >= 3}
+                            className="text-dehi-charcoal hover:text-dehi-gold p-0.5 disabled:opacity-40 cursor-pointer"
                             aria-label="Increase quantity"
                           >
                             <Plus className="w-3 h-3" />
@@ -127,9 +132,15 @@ export default function CartDrawer() {
                           <div className="text-sm font-bold text-dehi-charcoal">
                             {formatPrice(subtotal)}
                           </div>
-                          <div className="text-[11px] text-dehi-charcoal/50 line-through">
-                            {formatPrice(mrpTotal)}
-                          </div>
+                          {quantity > 1 ? (
+                            <div className="text-[11px] text-emerald-700 font-semibold">
+                              Save {formatPrice(bundleSavings)}
+                            </div>
+                          ) : (
+                            <div className="text-[11px] text-dehi-charcoal/50 line-through">
+                              {formatPrice(mrpTotal)}
+                            </div>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -159,7 +170,7 @@ export default function CartDrawer() {
                   </p>
                   <button
                     onClick={() => addToCart(1)}
-                    className="px-6 py-2.5 rounded-full bg-dehi-charcoal text-dehi-ivory text-xs font-semibold hover:bg-dehi-gold hover:text-dehi-charcoal transition-colors"
+                    className="px-6 py-2.5 rounded-full bg-dehi-charcoal text-dehi-ivory text-xs font-semibold hover:bg-dehi-gold hover:text-dehi-charcoal transition-colors cursor-pointer"
                   >
                     Add Dehi Body Wash — {formatPrice(product.price)}
                   </button>
@@ -172,7 +183,7 @@ export default function CartDrawer() {
               <div className="p-5 border-t border-dehi-gold/20 bg-dehi-cream/50 space-y-4">
                 <div className="space-y-1.5 text-sm">
                   <div className="flex justify-between text-dehi-charcoal/70 text-xs">
-                    <span>Subtotal</span>
+                    <span>Subtotal ({quantity} unit{quantity > 1 ? "s" : ""})</span>
                     <span>{formatPrice(subtotal)}</span>
                   </div>
                   <div className="flex justify-between text-dehi-charcoal/70 text-xs">
@@ -198,8 +209,8 @@ export default function CartDrawer() {
                   <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
                 </Link>
 
-                <p className="text-[11px] text-center text-dehi-charcoal/50">
-                  Encrypted 256-bit Indian payment gateway checkout
+                <p className="text-[11px] text-center text-dehi-charcoal/60">
+                  Direct dispatch from R I ENTERPRISE • Pan-India Delivery
                 </p>
               </div>
             )}

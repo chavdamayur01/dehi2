@@ -1,7 +1,7 @@
 "use client";
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
-import { DEHI_PRODUCT, Product } from "@/types";
+import { DEHI_PRODUCT, Product, ValidQuantity, QUANTITY_PRICING, getQuantityPricing } from "@/types";
 
 interface CartContextType {
   product: Product;
@@ -9,8 +9,10 @@ interface CartContextType {
   isCartOpen: boolean;
   toastMessage: string | null;
   addToCart: (qty?: number) => void;
+  setOfferQuantity: (qty: ValidQuantity) => void;
   updateQuantity: (qty: number) => void;
   removeFromCart: () => void;
+  resetCart: () => void;
   openCart: () => void;
   closeCart: () => void;
   toggleCart: () => void;
@@ -19,11 +21,12 @@ interface CartContextType {
   subtotal: number;
   mrpTotal: number;
   savingsTotal: number;
+  bundleSavings: number;
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
 
-const CART_STORAGE_KEY = "dehi_cart_quantity_v1";
+const CART_STORAGE_KEY = "dehi_cart_quantity_v2";
 
 export function CartProvider({ children }: { children: ReactNode }) {
   const [quantity, setQuantity] = useState<number>(1);
@@ -36,8 +39,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
       const saved = localStorage.getItem(CART_STORAGE_KEY);
       if (saved) {
         const parsed = parseInt(saved, 10);
-        if (!isNaN(parsed) && parsed > 0) {
-          setQuantity(parsed);
+        if (!isNaN(parsed) && parsed >= 1 && parsed <= 3) {
+          setQuantity(parsed as ValidQuantity);
         }
       }
     } catch {
@@ -66,9 +69,15 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   const clearToast = () => setToastMessage(null);
 
+  const setOfferQuantity = (qty: ValidQuantity) => {
+    const validQty = Math.max(1, Math.min(3, qty)) as ValidQuantity;
+    setQuantity(validQty);
+  };
+
   const addToCart = (qty = 1) => {
-    setQuantity((prev) => Math.min(prev + qty, 10));
-    showToast("Dehi Body Wash added to cart");
+    const targetQty = Math.max(1, Math.min(3, qty)) as ValidQuantity;
+    setQuantity(targetQty);
+    showToast(`Added ${targetQty} × Dehi Body Wash to cart`);
     setIsCartOpen(true);
   };
 
@@ -77,7 +86,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
       setQuantity(0);
       showToast("Item removed from cart");
     } else {
-      setQuantity(Math.min(qty, 10));
+      const clamped = Math.max(1, Math.min(3, qty)) as ValidQuantity;
+      setQuantity(clamped);
     }
   };
 
@@ -86,13 +96,27 @@ export function CartProvider({ children }: { children: ReactNode }) {
     showToast("Item removed from cart");
   };
 
+  const resetCart = () => {
+    setQuantity(1);
+    try {
+      localStorage.removeItem(CART_STORAGE_KEY);
+    } catch {
+      // Ignore
+    }
+  };
+
   const openCart = () => setIsCartOpen(true);
   const closeCart = () => setIsCartOpen(false);
   const toggleCart = () => setIsCartOpen((prev) => !prev);
 
-  const subtotal = quantity * DEHI_PRODUCT.price;
-  const mrpTotal = quantity * DEHI_PRODUCT.mrp;
-  const savingsTotal = quantity * DEHI_PRODUCT.discount;
+  // Pricing calculations based on single source of truth
+  const isNotEmpty = quantity > 0;
+  const activeQty = (Math.max(1, Math.min(3, quantity || 1))) as ValidQuantity;
+  const pricingInfo = getQuantityPricing(activeQty);
+  const subtotal = isNotEmpty ? pricingInfo.price : 0;
+  const mrpTotal = isNotEmpty ? activeQty * DEHI_PRODUCT.mrp : 0;
+  const bundleSavings = isNotEmpty ? pricingInfo.savings : 0;
+  const savingsTotal = isNotEmpty ? mrpTotal - subtotal : 0;
 
   return (
     <CartContext.Provider
@@ -102,8 +126,10 @@ export function CartProvider({ children }: { children: ReactNode }) {
         isCartOpen,
         toastMessage,
         addToCart,
+        setOfferQuantity,
         updateQuantity,
         removeFromCart,
+        resetCart,
         openCart,
         closeCart,
         toggleCart,
@@ -112,6 +138,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
         subtotal,
         mrpTotal,
         savingsTotal,
+        bundleSavings,
       }}
     >
       {children}

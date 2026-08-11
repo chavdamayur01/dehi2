@@ -83,9 +83,13 @@ export default function OrderSuccessPage() {
             Thank you for choosing Dehi.
           </h1>
 
-          <p className="text-sm sm:text-base text-dehi-charcoal/70 font-light max-w-md mx-auto mb-8">
-            Your order for gentle everyday shower care has been received and registered under Order Reference{" "}
+          <p className="text-sm sm:text-base text-dehi-charcoal/70 font-light max-w-md mx-auto mb-8 leading-relaxed">
+            Your order details have been successfully received under Order Reference{" "}
             <strong className="font-mono text-dehi-charcoal font-semibold">{orderId}</strong>.
+            <br />
+            <span className="font-medium text-dehi-charcoal block mt-2">
+              Our team will contact you directly within 24 hours to confirm your order.
+            </span>
           </p>
 
           {/* Receipt Breakdown Box */}

@@ -4,21 +4,25 @@ import React, { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
+import confetti from "canvas-confetti";
 import {
   ArrowLeft,
   ShieldCheck,
-  CreditCard,
-  Smartphone,
-  Building,
   Plus,
   Minus,
   CheckCircle2,
   Lock,
   Truck,
   Sparkles,
+  AlertCircle,
+  Clock,
+  PhoneCall,
+  X,
+  Package,
 } from "lucide-react";
 import { useCart } from "@/context/CartContext";
+import { ValidQuantity, QUANTITY_PRICING, getQuantityPricing } from "@/types";
 import { formatPrice, validateEmail, validatePhone, validatePincode } from "@/lib/utils";
 
 interface FormErrors {
@@ -31,9 +35,16 @@ interface FormErrors {
   pincode?: string;
 }
 
+interface ConfirmedOrderState {
+  orderId: string;
+  quantity: number;
+  totalPrice: number;
+  customerName: string;
+}
+
 export default function CheckoutPage() {
   const router = useRouter();
-  const { product, quantity, updateQuantity, subtotal, savingsTotal } = useCart();
+  const { product, quantity, updateQuantity, resetCart } = useCart();
 
   const [formData, setFormData] = useState({
     fullName: "",
@@ -45,21 +56,25 @@ export default function CheckoutPage() {
     pincode: "",
   });
 
-  const [paymentMethod, setPaymentMethod] = useState<"upi" | "card" | "netbanking">("upi");
-  const [upiProvider, setUpiProvider] = useState<string>("gpay");
   const [errors, setErrors] = useState<FormErrors>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [confirmedOrder, setConfirmedOrder] = useState<ConfirmedOrderState | null>(null);
 
-  const effectiveQty = quantity > 0 ? quantity : 1;
-  const effectiveSubtotal = effectiveQty * product.price;
+  const effectiveQty = (Math.max(1, Math.min(3, quantity > 0 ? quantity : 1))) as ValidQuantity;
+  const pricing = getQuantityPricing(effectiveQty);
+  const effectiveSubtotal = pricing.price;
   const effectiveMrp = effectiveQty * product.mrp;
-  const effectiveSavings = effectiveQty * product.discount;
+  const effectiveSavings = effectiveMrp - effectiveSubtotal;
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
     if (errors[name as keyof FormErrors]) {
       setErrors((prev) => ({ ...prev, [name]: undefined }));
+    }
+    if (submitError) {
+      setSubmitError(null);
     }
   };
 
@@ -98,7 +113,7 @@ export default function CheckoutPage() {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!validateForm()) {
       const firstErrorField = Object.keys(errors)[0];
@@ -108,27 +123,84 @@ export default function CheckoutPage() {
     }
 
     setIsSubmitting(true);
-
-    const orderData = {
-      orderId: `DEHI-${Date.now().toString().slice(-6)}`,
-      customer: formData,
-      productName: product.name,
-      size: product.size,
-      quantity: effectiveQty,
-      total: effectiveSubtotal,
-      paymentMethod,
-      timestamp: new Date().toISOString(),
-    };
+    setSubmitError(null);
 
     try {
-      localStorage.setItem("dehi_last_order", JSON.stringify(orderData));
-    } catch {
-      // Ignore
-    }
+      const payload = {
+        fullName: formData.fullName.trim(),
+        phone: formData.phone.trim(),
+        email: formData.email.trim(),
+        address: formData.address.trim(),
+        city: formData.city.trim(),
+        state: formData.state.trim(),
+        pincode: formData.pincode.trim(),
+        quantity: effectiveQty,
+      };
 
-    setTimeout(() => {
-      router.push("/order-success");
-    }, 900);
+      const res = await fetch("/api/send-order", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await res.json().catch(() => null);
+
+      if (!res.ok || !data?.success) {
+        throw new Error(data?.error || "Unable to send your order right now. Please try again in a moment.");
+      }
+
+      // Success
+      const orderSummary: ConfirmedOrderState = {
+        orderId: data.orderNumber || data.orderId || `DEHI-${Date.now().toString().slice(-6)}`,
+        quantity: data.quantity || effectiveQty,
+        totalPrice: data.totalPrice || effectiveSubtotal,
+        customerName: formData.fullName.trim(),
+      };
+
+      setConfirmedOrder(orderSummary);
+
+      try {
+        localStorage.setItem(
+          "dehi_last_order",
+          JSON.stringify({
+            orderId: orderSummary.orderId,
+            customer: formData,
+            productName: product.name,
+            size: product.size,
+            quantity: orderSummary.quantity,
+            total: orderSummary.totalPrice,
+            timestamp: new Date().toISOString(),
+          })
+        );
+      } catch {
+        // Ignore
+      }
+
+      // Trigger celebration confetti
+      try {
+        confetti({
+          particleCount: 80,
+          spread: 70,
+          origin: { y: 0.6 },
+          colors: ["#D4AF37", "#C5A059", "#FAF6F0", "#3B4D3C"],
+        });
+      } catch {
+        // Ignore
+      }
+    } catch (err: unknown) {
+      const errorMessage =
+        err instanceof Error ? err.message : "Unable to send your order right now. Please try again in a moment.";
+      setSubmitError(errorMessage);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleDone = () => {
+    resetCart();
+    router.push("/");
   };
 
   return (
@@ -140,7 +212,7 @@ export default function CheckoutPage() {
             <Link
               href="/"
               className="inline-flex items-center gap-2 text-xs sm:text-sm font-medium text-dehi-charcoal/75 hover:text-dehi-charcoal transition-colors group p-1"
-              aria-label="Back to Cart"
+              aria-label="Back to Store"
             >
               <ArrowLeft className="w-4 h-4 transition-transform group-hover:-translate-x-1" />
               <span>Back to Store</span>
@@ -163,12 +235,10 @@ export default function CheckoutPage() {
           <div className="flex items-center gap-1.5 sm:gap-3 text-xs tracking-wider">
             <span className="text-dehi-charcoal/40 hidden xs:inline">01 Cart</span>
             <span className="text-dehi-charcoal/30 hidden xs:inline">›</span>
-            <span className="font-semibold text-dehi-charcoal flex items-center gap-1 px-2.5 py-1 rounded-full bg-dehi-gold/20 border border-dehi-gold/40">
-              <span className="w-1.5 h-1.5 rounded-full bg-dehi-gold-dark" />
-              02 Details
+            <span className="font-semibold text-dehi-charcoal flex items-center gap-1.5 px-3 py-1 rounded-full bg-dehi-gold/20 border border-dehi-gold/40">
+              <span className="w-1.5 h-1.5 rounded-full bg-dehi-gold-dark animate-pulse" />
+              02 Delivery Details & Confirmation
             </span>
-            <span className="text-dehi-charcoal/30 hidden xs:inline">›</span>
-            <span className="text-dehi-charcoal/40 hidden xs:inline">03 Payment</span>
           </div>
         </div>
       </header>
@@ -177,22 +247,22 @@ export default function CheckoutPage() {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 sm:pt-12">
         <div className="mb-8">
           <h1 className="font-serif text-2xl sm:text-3xl lg:text-4xl text-dehi-charcoal">
-            Secure Checkout
+            Customer Details & Delivery
           </h1>
           <p className="text-xs sm:text-sm text-dehi-charcoal/60 mt-1 font-light">
-            Fast, encrypted single-product checkout with pan-India dispatch.
+            Enter your delivery information below to place your order directly with R I ENTERPRISE.
           </p>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12">
-          {/* LEFT: Customer Details & Payment Selector (7 cols) */}
+          {/* LEFT: Customer Details Form (7 cols) */}
           <div className="lg:col-span-7 space-y-8">
             <form onSubmit={handleSubmit} noValidate>
               {/* Card 1: Delivery Details */}
-              <div className="p-6 sm:p-8 rounded-2xl bg-dehi-cream/60 border border-dehi-gold/30 shadow-luxury mb-8">
+              <div className="p-6 sm:p-8 rounded-2xl bg-dehi-cream/60 border border-dehi-gold/30 shadow-luxury mb-6">
                 <div className="flex items-center justify-between pb-4 mb-6 border-b border-dehi-gold/20">
                   <h2 className="font-serif text-xl text-dehi-charcoal flex items-center gap-2">
-                    <span>1. Customer & Shipping Details</span>
+                    <span>1. Customer & Delivery Information</span>
                   </h2>
                   <span className="text-xs text-dehi-gold-dark font-medium uppercase tracking-wider">
                     Required
@@ -378,147 +448,35 @@ export default function CheckoutPage() {
                 </div>
               </div>
 
-              {/* Card 2: Modular Payment Method Selector */}
-              <div className="p-6 sm:p-8 rounded-2xl bg-dehi-cream/60 border border-dehi-gold/30 shadow-luxury mb-8">
-                <div className="flex items-center justify-between pb-4 mb-6 border-b border-dehi-gold/20">
-                  <h2 className="font-serif text-xl text-dehi-charcoal flex items-center gap-2">
-                    <span>2. Select Payment Method</span>
-                  </h2>
-                  <div className="flex items-center gap-1.5 text-xs text-emerald-700 font-medium">
-                    <Lock className="w-3.5 h-3.5" />
-                    <span>256-Bit SSL</span>
-                  </div>
-                </div>
-
-                {/* Method Options */}
-                <div className="space-y-3 mb-6">
-                  {/* UPI Option */}
-                  <label
-                    onClick={() => setPaymentMethod("upi")}
-                    className={`flex items-center justify-between p-4 rounded-xl border cursor-pointer transition-all ${
-                      paymentMethod === "upi"
-                        ? "bg-dehi-ivory border-dehi-gold ring-1 ring-dehi-gold shadow-sm"
-                        : "bg-dehi-ivory/50 border-dehi-gold/20 hover:border-dehi-gold/40"
-                    }`}
-                  >
-                    <div className="flex items-center gap-3">
-                      <input
-                        type="radio"
-                        name="paymentMethod"
-                        checked={paymentMethod === "upi"}
-                        onChange={() => setPaymentMethod("upi")}
-                        className="accent-dehi-gold w-4 h-4"
-                      />
-                      <Smartphone className="w-5 h-5 text-dehi-gold-dark" />
-                      <div>
-                        <div className="text-sm font-semibold text-dehi-charcoal">
-                          UPI (Instant & Recommended)
-                        </div>
-                        <div className="text-xs text-dehi-charcoal/60">
-                          Google Pay, PhonePe, Paytm, BHIM & Any UPI ID
-                        </div>
-                      </div>
-                    </div>
-                    <span className="text-[11px] px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 font-bold">
-                      FAST
-                    </span>
-                  </label>
-
-                  {paymentMethod === "upi" && (
-                    <motion.div
-                      initial={{ opacity: 0, height: 0 }}
-                      animate={{ opacity: 1, height: "auto" }}
-                      className="pl-8 pr-2 py-2 flex flex-wrap gap-2"
-                    >
-                      {["gpay", "phonepe", "paytm", "bhim"].map((app) => (
-                        <button
-                          key={app}
-                          type="button"
-                          onClick={() => setUpiProvider(app)}
-                          className={`px-3 py-1.5 rounded-lg text-xs font-medium uppercase border transition-all ${
-                            upiProvider === app
-                              ? "bg-dehi-charcoal text-dehi-ivory border-dehi-charcoal"
-                              : "bg-dehi-ivory text-dehi-charcoal border-dehi-gold/30 hover:border-dehi-gold"
-                          }`}
-                        >
-                          {app === "gpay"
-                            ? "Google Pay"
-                            : app === "phonepe"
-                            ? "PhonePe"
-                            : app === "paytm"
-                            ? "Paytm"
-                            : "BHIM UPI"}
-                        </button>
-                      ))}
-                    </motion.div>
-                  )}
-
-                  {/* Card Option */}
-                  <label
-                    onClick={() => setPaymentMethod("card")}
-                    className={`flex items-center justify-between p-4 rounded-xl border cursor-pointer transition-all ${
-                      paymentMethod === "card"
-                        ? "bg-dehi-ivory border-dehi-gold ring-1 ring-dehi-gold shadow-sm"
-                        : "bg-dehi-ivory/50 border-dehi-gold/20 hover:border-dehi-gold/40"
-                    }`}
-                  >
-                    <div className="flex items-center gap-3">
-                      <input
-                        type="radio"
-                        name="paymentMethod"
-                        checked={paymentMethod === "card"}
-                        onChange={() => setPaymentMethod("card")}
-                        className="accent-dehi-gold w-4 h-4"
-                      />
-                      <CreditCard className="w-5 h-5 text-dehi-gold-dark" />
-                      <div>
-                        <div className="text-sm font-semibold text-dehi-charcoal">
-                          Credit / Debit Card
-                        </div>
-                        <div className="text-xs text-dehi-charcoal/60">
-                          Visa, Mastercard, RuPay, Maestro
-                        </div>
-                      </div>
-                    </div>
-                  </label>
-
-                  {/* Net Banking Option */}
-                  <label
-                    onClick={() => setPaymentMethod("netbanking")}
-                    className={`flex items-center justify-between p-4 rounded-xl border cursor-pointer transition-all ${
-                      paymentMethod === "netbanking"
-                        ? "bg-dehi-ivory border-dehi-gold ring-1 ring-dehi-gold shadow-sm"
-                        : "bg-dehi-ivory/50 border-dehi-gold/20 hover:border-dehi-gold/40"
-                    }`}
-                  >
-                    <div className="flex items-center gap-3">
-                      <input
-                        type="radio"
-                        name="paymentMethod"
-                        checked={paymentMethod === "netbanking"}
-                        onChange={() => setPaymentMethod("netbanking")}
-                        className="accent-dehi-gold w-4 h-4"
-                      />
-                      <Building className="w-5 h-5 text-dehi-gold-dark" />
-                      <div>
-                        <div className="text-sm font-semibold text-dehi-charcoal">
-                          Net Banking
-                        </div>
-                        <div className="text-xs text-dehi-charcoal/60">
-                          All Indian Major Banks Supported
-                        </div>
-                      </div>
-                    </div>
-                  </label>
-                </div>
-
-                <div className="p-3.5 rounded-xl bg-dehi-ivory/80 border border-dehi-gold/20 text-xs text-dehi-charcoal/70 flex items-center gap-2.5">
-                  <ShieldCheck className="w-4 h-4 text-dehi-gold-dark shrink-0" />
-                  <span>
-                    Gateway integration ready. Payment will be processed securely on the next step.
+              {/* Order Flow Guarantee Notice */}
+              <div className="p-4 rounded-xl bg-dehi-ivory/90 border border-dehi-gold/30 text-xs text-dehi-charcoal/80 flex items-start gap-3 mb-6 shadow-xs">
+                <PhoneCall className="w-4 h-4 text-dehi-gold-dark shrink-0 mt-0.5" />
+                <div className="leading-relaxed">
+                  <span className="font-semibold text-dehi-charcoal block mb-0.5">
+                    Direct Order Confirmation:
                   </span>
+                  Once you confirm your order, our team will receive your delivery request and contact you directly within 24 hours to confirm your order details.
                 </div>
               </div>
+
+              {/* Error Banner with Try Again */}
+              {submitError && (
+                <div className="p-4 rounded-xl bg-red-50 border border-red-200 text-red-800 text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
+                  <div className="flex items-center gap-2">
+                    <AlertCircle className="w-4 h-4 text-red-600 shrink-0" />
+                    <div>
+                      <p className="font-semibold">{submitError}</p>
+                      <p className="text-red-700 font-light">Please check your details and try again.</p>
+                    </div>
+                  </div>
+                  <button
+                    type="submit"
+                    className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition-colors cursor-pointer self-start sm:self-auto shrink-0"
+                  >
+                    Try Again
+                  </button>
+                </div>
+              )}
 
               {/* Primary Action Button */}
               <button
@@ -529,12 +487,12 @@ export default function CheckoutPage() {
                 {isSubmitting ? (
                   <>
                     <span className="w-5 h-5 border-2 border-dehi-ivory border-t-transparent rounded-full animate-spin" />
-                    <span>Processing Order...</span>
+                    <span>Sending Order...</span>
                   </>
                 ) : (
                   <>
-                    <span>Continue to Payment — {formatPrice(effectiveSubtotal)}</span>
-                    <Lock className="w-4 h-4" />
+                    <span>Confirm Order — {formatPrice(effectiveSubtotal)}</span>
+                    <Sparkles className="w-4 h-4" />
                   </>
                 )}
               </button>
@@ -576,7 +534,8 @@ export default function CheckoutPage() {
                         <button
                           type="button"
                           onClick={() => updateQuantity(Math.max(effectiveQty - 1, 1))}
-                          className="text-dehi-charcoal hover:text-dehi-gold p-0.5"
+                          disabled={effectiveQty <= 1}
+                          className="text-dehi-charcoal hover:text-dehi-gold p-0.5 disabled:opacity-40 cursor-pointer"
                           aria-label="Decrease quantity"
                         >
                           <Minus className="w-3 h-3" />
@@ -586,8 +545,9 @@ export default function CheckoutPage() {
                         </span>
                         <button
                           type="button"
-                          onClick={() => updateQuantity(Math.min(effectiveQty + 1, 10))}
-                          className="text-dehi-charcoal hover:text-dehi-gold p-0.5"
+                          onClick={() => updateQuantity(Math.min(effectiveQty + 1, 3))}
+                          disabled={effectiveQty >= 3}
+                          className="text-dehi-charcoal hover:text-dehi-gold p-0.5 disabled:opacity-40 cursor-pointer"
                           aria-label="Increase quantity"
                         >
                           <Plus className="w-3 h-3" />
@@ -598,9 +558,15 @@ export default function CheckoutPage() {
                         <div className="text-sm font-bold text-dehi-charcoal">
                           {formatPrice(effectiveSubtotal)}
                         </div>
-                        <div className="text-[11px] text-dehi-charcoal/50 line-through">
-                          {formatPrice(effectiveMrp)}
-                        </div>
+                        {effectiveQty > 1 ? (
+                          <div className="text-[11px] text-emerald-700 font-semibold">
+                            Save {formatPrice(pricing.savings)}
+                          </div>
+                        ) : (
+                          <div className="text-[11px] text-dehi-charcoal/50 line-through">
+                            {formatPrice(effectiveMrp)}
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -650,6 +616,114 @@ export default function CheckoutPage() {
           </div>
         </div>
       </main>
+
+      {/* SUCCESS POPUP MODAL */}
+      <AnimatePresence>
+        {confirmedOrder && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 overflow-y-auto">
+            {/* Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-dehi-charcoal/70 backdrop-blur-sm"
+              aria-hidden="true"
+            />
+
+            {/* Modal Dialog */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.92, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.92, y: 20 }}
+              transition={{ type: "spring", damping: 25, stiffness: 300 }}
+              className="relative w-full max-w-lg bg-dehi-ivory rounded-3xl p-6 sm:p-8 shadow-2xl border border-dehi-gold/40 text-center my-auto z-10"
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="success-title"
+            >
+              {/* Success Badge Icon */}
+              <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-dehi-gold/20 text-dehi-gold-dark flex items-center justify-center mx-auto mb-5 shadow-inner-gold">
+                <CheckCircle2 className="w-10 h-10 text-dehi-gold-dark" />
+              </div>
+
+              {/* Status pill */}
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 text-xs font-semibold tracking-wider uppercase mb-3">
+                <span className="w-2 h-2 rounded-full bg-emerald-600" />
+                <span>Order sent to Dehi</span>
+              </div>
+
+              {/* Heading */}
+              <h2
+                id="success-title"
+                className="font-serif text-2xl sm:text-3xl text-dehi-charcoal mb-2 font-normal"
+              >
+                Order Request Received! 🎉
+              </h2>
+
+              <p className="text-sm text-dehi-charcoal/80 font-medium mb-1">
+                Thank you for choosing Dehi Body Wash.
+              </p>
+
+              <p className="text-xs sm:text-sm text-dehi-charcoal/70 font-light max-w-sm mx-auto mb-6 leading-relaxed">
+                Your order details have been successfully received.
+                <br />
+                <strong className="font-semibold text-dehi-charcoal">
+                  Our team will contact you directly within 24 hours to confirm your order.
+                </strong>
+              </p>
+
+              {/* Order Summary Box */}
+              <div className="p-4 sm:p-5 rounded-2xl bg-dehi-cream/70 border border-dehi-gold/30 text-left mb-6 space-y-3">
+                <div className="flex items-center justify-between pb-3 border-b border-dehi-gold/20 text-xs">
+                  <span className="text-dehi-charcoal/60 uppercase tracking-wider font-semibold">
+                    Order Reference
+                  </span>
+                  <span className="font-mono font-bold text-dehi-charcoal">
+                    {confirmedOrder.orderId}
+                  </span>
+                </div>
+
+                <div className="flex items-center justify-between text-sm">
+                  <div>
+                    <span className="font-medium text-dehi-charcoal block">
+                      Dehi Body Wash (200 mL)
+                    </span>
+                    <span className="text-xs text-dehi-charcoal/60">
+                      Quantity: {confirmedOrder.quantity}
+                    </span>
+                  </div>
+                  <div className="text-right">
+                    <span className="font-bold font-serif text-base text-dehi-charcoal">
+                      {formatPrice(confirmedOrder.totalPrice)}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="pt-2 border-t border-dehi-gold/20 flex items-center justify-between text-xs text-dehi-charcoal/70">
+                  <span className="flex items-center gap-1">
+                    <Clock className="w-3.5 h-3.5 text-dehi-gold-dark" />
+                    Direct Manual Confirmation
+                  </span>
+                  <span className="text-emerald-700 font-medium">Free Shipping</span>
+                </div>
+              </div>
+
+              {/* Primary Action Button */}
+              <button
+                type="button"
+                onClick={handleDone}
+                className="w-full py-3.5 px-8 rounded-full bg-dehi-charcoal hover:bg-dehi-gold hover:text-dehi-charcoal text-dehi-ivory text-sm font-semibold tracking-wide shadow-luxury transition-all duration-300 cursor-pointer"
+              >
+                Done
+              </button>
+
+              <p className="text-[11px] text-dehi-charcoal/50 mt-4">
+                R I ENTERPRISE • &ldquo;Care for every Body&rdquo;
+              </p>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
