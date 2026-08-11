@@ -12,6 +12,7 @@ export interface Product {
     main: string;
     angle2: string;
     differentAngle: string;
+    angle4: string;
   };
   features: string[];
 }
@@ -25,8 +26,8 @@ export type ValidQuantity = 1 | 2 | 3;
 
 export const QUANTITY_PRICING: Record<ValidQuantity, number> = {
   1: 399,
-  2: 699,
-  3: 999,
+  2: 499,
+  3: 699,
 } as const;
 
 export interface QuantityOffer {
@@ -50,19 +51,19 @@ export const QUANTITY_OFFERS: QuantityOffer[] = [
   {
     quantity: 2,
     title: "2 Body Washes",
-    price: 699,
+    price: 499,
     baseTotal: 798,
-    savings: 99,
-    savingsLabel: "Save ₹99",
+    savings: 299,
+    savingsLabel: "Save ₹299",
     popular: true,
   },
   {
     quantity: 3,
     title: "3 Body Washes",
-    price: 999,
+    price: 699,
     baseTotal: 1197,
-    savings: 198,
-    savingsLabel: "Save ₹198",
+    savings: 498,
+    savingsLabel: "Save ₹498",
   },
 ];
 
@@ -115,6 +116,7 @@ export const DEHI_PRODUCT: Product = {
     main: "/images/product.png",
     angle2: "/images/productangel2.png",
     differentAngle: "/images/productdifferntangle.png",
+    angle4: "/images/productangle4.png",
   },
   features: [
     "Sulfate-Free",

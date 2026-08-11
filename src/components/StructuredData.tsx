@@ -10,6 +10,7 @@ export default function StructuredData() {
       "https://dehiindia.com/images/product.png",
       "https://dehiindia.com/images/productangel2.png",
       "https://dehiindia.com/images/productdifferntangle.png",
+      "https://dehiindia.com/images/productangle4.png",
     ],
     description: DEHI_PRODUCT.description,
     sku: "DEHI-BW-200ML",

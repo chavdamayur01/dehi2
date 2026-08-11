@@ -13,6 +13,7 @@ const ANGLES = [
   { id: "main", src: DEHI_PRODUCT.images.main, label: "Front View" },
   { id: "angle2", src: DEHI_PRODUCT.images.angle2, label: "Side Angle" },
   { id: "differentAngle", src: DEHI_PRODUCT.images.differentAngle, label: "Detail Angle" },
+  { id: "angle4", src: DEHI_PRODUCT.images.angle4, label: "Back Angle" },
 ];
 
 export default function ProductShowcase() {
@@ -92,12 +93,12 @@ export default function ProductShowcase() {
             </div>
 
             {/* Thumbnail Gallery */}
-            <div className="flex items-center gap-4 mt-6">
+            <div className="flex items-center justify-center gap-2.5 sm:gap-4 mt-6 max-w-full">
               {ANGLES.map((angle, idx) => (
                 <button
                   key={angle.id}
                   onClick={() => setActiveAngleIndex(idx)}
-                  className={`relative w-20 h-20 sm:w-24 sm:h-24 p-2 rounded-xl border transition-all duration-200 bg-dehi-ivory/80 cursor-pointer ${
+                  className={`relative w-16 h-16 sm:w-24 sm:h-24 p-1.5 sm:p-2 rounded-xl border transition-all duration-200 bg-dehi-ivory/80 cursor-pointer ${
                     activeAngleIndex === idx
                       ? "border-dehi-gold shadow-luxury-gold ring-1 ring-dehi-gold"
                       : "border-dehi-gold/30 opacity-70 hover:opacity-100 hover:border-dehi-gold/60"

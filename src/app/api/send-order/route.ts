@@ -85,7 +85,7 @@ export async function POST(req: NextRequest): Promise<NextResponse<OrderApiRespo
       );
     }
 
-    // 2. Fixed Quantity and Pricing (1: 399, 2: 699, 3: 999)
+    // 2. Fixed Quantity and Pricing (1: 399, 2: 499, 3: 699)
     const quantity = (Math.max(1, Math.min(3, rawQuantity || 1))) as ValidQuantity;
     const totalPrice = QUANTITY_PRICING[quantity] || 399;
 

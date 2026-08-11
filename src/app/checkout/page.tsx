@@ -17,7 +17,6 @@ import {
   Sparkles,
   AlertCircle,
   Clock,
-  PhoneCall,
   X,
   Package,
 } from "lucide-react";
@@ -445,17 +444,6 @@ export default function CheckoutPage() {
                       )}
                     </div>
                   </div>
-                </div>
-              </div>
-
-              {/* Order Flow Guarantee Notice */}
-              <div className="p-4 rounded-xl bg-dehi-ivory/90 border border-dehi-gold/30 text-xs text-dehi-charcoal/80 flex items-start gap-3 mb-6 shadow-xs">
-                <PhoneCall className="w-4 h-4 text-dehi-gold-dark shrink-0 mt-0.5" />
-                <div className="leading-relaxed">
-                  <span className="font-semibold text-dehi-charcoal block mb-0.5">
-                    Direct Order Confirmation:
-                  </span>
-                  Once you confirm your order, our team will receive your delivery request and contact you directly within 24 hours to confirm your order details.
                 </div>
               </div>
 
