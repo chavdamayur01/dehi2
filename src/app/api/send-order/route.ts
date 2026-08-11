@@ -25,7 +25,15 @@ interface InsertedOrderResult {
 
 export async function POST(req: NextRequest): Promise<NextResponse<OrderApiResponse>> {
   try {
-    const body = (await req.json()) as Partial<OrderRequestBody>;
+    let body: Partial<OrderRequestBody> = {};
+    try {
+      body = (await req.json()) as Partial<OrderRequestBody>;
+    } catch {
+      return NextResponse.json(
+        { success: false, error: "Invalid request body." },
+        { status: 400 }
+      );
+    }
 
     const fullName = body.fullName?.trim() || "";
     const phone = body.phone?.trim() || "";
@@ -122,7 +130,7 @@ export async function POST(req: NextRequest): Promise<NextResponse<OrderApiRespo
 
     // 6. Check for Supabase Insert Errors
     if (error) {
-      console.error("Supabase order insert failed:", {
+      console.error("SUPABASE ORDER INSERT ERROR:", {
         message: error.message,
         code: error.code,
         details: error.details,
@@ -146,7 +154,10 @@ export async function POST(req: NextRequest): Promise<NextResponse<OrderApiRespo
       totalPrice: data?.total_price || totalPrice,
     });
   } catch (error) {
-    console.error("Order processing error:", error);
+    console.error("ORDER API ERROR:", {
+      message: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined,
+    });
     return NextResponse.json(
       {
         success: false,
