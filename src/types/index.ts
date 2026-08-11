@@ -26,8 +26,8 @@ export type ValidQuantity = 1 | 2 | 3;
 
 export const QUANTITY_PRICING: Record<ValidQuantity, number> = {
   1: 399,
-  2: 499,
-  3: 699,
+  2: 699,
+  3: 999,
 } as const;
 
 export interface QuantityOffer {
@@ -45,14 +45,14 @@ export const QUANTITY_OFFERS: QuantityOffer[] = [
     quantity: 1,
     title: "1 Body Wash",
     price: 399,
-    baseTotal: 399,
-    savings: 0,
+    baseTotal: 499,
+    savings: 100,
   },
   {
     quantity: 2,
     title: "2 Body Washes",
-    price: 499,
-    baseTotal: 798,
+    price: 699,
+    baseTotal: 998,
     savings: 299,
     savingsLabel: "Save ₹299",
     popular: true,
@@ -60,8 +60,8 @@ export const QUANTITY_OFFERS: QuantityOffer[] = [
   {
     quantity: 3,
     title: "3 Body Washes",
-    price: 699,
-    baseTotal: 1197,
+    price: 999,
+    baseTotal: 1497,
     savings: 498,
     savingsLabel: "Save ₹498",
   },
@@ -75,7 +75,7 @@ export function getQuantityPricing(qty: number): {
 } {
   const quantity = (Math.max(1, Math.min(3, qty || 1))) as ValidQuantity;
   const price = QUANTITY_PRICING[quantity] || 399;
-  const baseTotal = quantity * 399;
+  const baseTotal = quantity * 499;
   const savings = baseTotal - price;
   return { quantity, price, savings, baseTotal };
 }
