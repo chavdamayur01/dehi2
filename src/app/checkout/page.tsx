@@ -19,9 +19,11 @@ import {
   Clock,
   X,
   Package,
+  Tag,
+  Check,
 } from "lucide-react";
 import { useCart } from "@/context/CartContext";
-import { ValidQuantity, QUANTITY_PRICING, getQuantityPricing } from "@/types";
+import { ValidQuantity, getQuantityPricing } from "@/types";
 import { formatPrice, validateEmail, validatePhone, validatePincode } from "@/lib/utils";
 
 interface FormErrors {
@@ -60,11 +62,41 @@ export default function CheckoutPage() {
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [confirmedOrder, setConfirmedOrder] = useState<ConfirmedOrderState | null>(null);
 
+  // Promo Code State
+  const [isPromoExpanded, setIsPromoExpanded] = useState(false);
+  const [promoInput, setPromoInput] = useState("");
+  const [appliedPromo, setAppliedPromo] = useState<string | null>(null);
+  const [promoError, setPromoError] = useState<string | null>(null);
+
   const effectiveQty = (Math.max(1, Math.min(3, quantity > 0 ? quantity : 1))) as ValidQuantity;
   const pricing = getQuantityPricing(effectiveQty);
-  const effectiveSubtotal = pricing.price;
-  const effectiveMrp = effectiveQty * product.mrp;
-  const effectiveSavings = effectiveMrp - effectiveSubtotal;
+  const offerPrice = pricing.price;
+  const independenceDayDiscount = pricing.savings;
+
+  const isPromoApplied = appliedPromo === "VIBE4";
+  const promoDiscount = isPromoApplied ? Math.round(offerPrice * 0.1) : 0;
+  const finalTotal = Math.max(0, offerPrice - promoDiscount);
+
+  const handleApplyPromo = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    const trimmed = promoInput.trim();
+    if (!trimmed) {
+      setPromoError("Please enter a promo code");
+      return;
+    }
+    if (trimmed.toUpperCase() === "VIBE4") {
+      setAppliedPromo("VIBE4");
+      setPromoError(null);
+    } else {
+      setPromoError("Invalid promo code. Use code VIBE4 for 10% off");
+    }
+  };
+
+  const handleRemovePromo = () => {
+    setAppliedPromo(null);
+    setPromoInput("");
+    setPromoError(null);
+  };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -134,6 +166,7 @@ export default function CheckoutPage() {
         state: formData.state.trim(),
         pincode: formData.pincode.trim(),
         quantity: effectiveQty,
+        promoCode: isPromoApplied ? "VIBE4" : undefined,
       };
 
       const res = await fetch("/api/send-order", {
@@ -154,7 +187,7 @@ export default function CheckoutPage() {
       const orderSummary: ConfirmedOrderState = {
         orderId: data.orderNumber || data.orderId || `DEHI-${Date.now().toString().slice(-6)}`,
         quantity: data.quantity || effectiveQty,
-        totalPrice: data.totalPrice || effectiveSubtotal,
+        totalPrice: data.totalPrice || finalTotal,
         customerName: formData.fullName.trim(),
       };
 
@@ -479,7 +512,7 @@ export default function CheckoutPage() {
                   </>
                 ) : (
                   <>
-                    <span>Confirm Order — {formatPrice(effectiveSubtotal)}</span>
+                    <span>Confirm Order — {formatPrice(finalTotal)}</span>
                     <Sparkles className="w-4 h-4" />
                   </>
                 )}
@@ -491,9 +524,19 @@ export default function CheckoutPage() {
           <div className="lg:col-span-5">
             <div className="sticky top-28 space-y-6">
               <div className="p-6 sm:p-8 rounded-2xl bg-dehi-cream/70 border border-dehi-gold/30 shadow-luxury">
-                <h2 className="font-serif text-xl text-dehi-charcoal pb-4 mb-6 border-b border-dehi-gold/20">
-                  Order Summary
-                </h2>
+                <div className="flex items-center justify-between pb-4 mb-4 border-b border-dehi-gold/20">
+                  <h2 className="font-serif text-xl text-dehi-charcoal">
+                    Order Summary
+                  </h2>
+                </div>
+
+                {/* Subtle 15 August Independence Day Offer Badge */}
+                <div className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-dehi-gold/15 border border-dehi-gold/40 text-dehi-charcoal text-xs font-medium mb-5">
+                  <Sparkles className="w-3.5 h-3.5 text-dehi-gold-dark shrink-0" />
+                  <span className="font-semibold tracking-wide text-dehi-charcoal">
+                    15 August Independence Day Offer
+                  </span>
+                </div>
 
                 {/* Product details */}
                 <div className="flex gap-4 pb-6 border-b border-dehi-gold/20">
@@ -544,36 +587,123 @@ export default function CheckoutPage() {
 
                       <div className="text-right">
                         <div className="text-sm font-bold text-dehi-charcoal">
-                          {formatPrice(effectiveSubtotal)}
+                          {formatPrice(finalTotal)}
                         </div>
-                        {effectiveQty > 1 ? (
-                          <div className="text-[11px] text-emerald-700 font-semibold">
-                            Save {formatPrice(pricing.savings)}
-                          </div>
-                        ) : (
-                          <div className="text-[11px] text-dehi-charcoal/50 line-through">
-                            {formatPrice(effectiveMrp)}
-                          </div>
-                        )}
+                        <div className="text-[11px] text-emerald-700 font-semibold">
+                          Save {formatPrice(independenceDayDiscount + promoDiscount)}
+                        </div>
                       </div>
                     </div>
                   </div>
                 </div>
 
+                {/* Promo Code Section */}
+                <div className="py-4 border-b border-dehi-gold/20">
+                  {!isPromoApplied ? (
+                    <div>
+                      {!isPromoExpanded ? (
+                        <button
+                          type="button"
+                          onClick={() => setIsPromoExpanded(true)}
+                          className="inline-flex items-center gap-1.5 text-xs font-semibold text-dehi-gold-dark hover:text-dehi-charcoal transition-colors cursor-pointer"
+                        >
+                          <Tag className="w-3.5 h-3.5" />
+                          <span>+ Add Promo Code</span>
+                        </button>
+                      ) : (
+                        <form onSubmit={handleApplyPromo} className="space-y-2">
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="text"
+                              value={promoInput}
+                              onChange={(e) => {
+                                setPromoInput(e.target.value);
+                                if (promoError) setPromoError(null);
+                              }}
+                              placeholder="Enter promo code"
+                              className="flex-1 px-3 py-2 text-xs rounded-lg bg-dehi-ivory border border-dehi-gold/40 text-dehi-charcoal uppercase placeholder:normal-case placeholder-dehi-charcoal/40 focus:outline-none focus:ring-1 focus:ring-dehi-gold min-w-0"
+                              autoFocus
+                            />
+                            <button
+                              type="submit"
+                              className="px-3.5 py-2 text-xs font-semibold rounded-lg bg-dehi-charcoal hover:bg-dehi-gold hover:text-dehi-charcoal text-dehi-ivory transition-colors cursor-pointer shrink-0"
+                            >
+                              Apply
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setIsPromoExpanded(false);
+                                setPromoError(null);
+                              }}
+                              className="p-2 text-dehi-charcoal/50 hover:text-dehi-charcoal text-xs cursor-pointer shrink-0"
+                              title="Cancel"
+                              aria-label="Cancel"
+                            >
+                              <X className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                          {promoError && (
+                            <p className="text-[11px] text-red-600 font-medium">{promoError}</p>
+                          )}
+                        </form>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="flex items-center justify-between bg-emerald-50/80 border border-emerald-200/80 rounded-xl p-3">
+                      <div className="flex items-center gap-2">
+                        <div className="w-5 h-5 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-700 shrink-0">
+                          <Check className="w-3 h-3 text-emerald-700" />
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-xs font-bold text-emerald-900 tracking-wide">
+                              Promo Code: VIBE4
+                            </span>
+                            <span className="text-[10px] font-semibold uppercase px-1.5 py-0.5 rounded bg-emerald-200/80 text-emerald-800">
+                              ✓ Applied
+                            </span>
+                          </div>
+                          <span className="text-[11px] text-emerald-700 block">
+                            10% Independence Day promo discount
+                          </span>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={handleRemovePromo}
+                        className="text-xs text-red-600 hover:text-red-800 font-medium hover:underline cursor-pointer p-1 shrink-0"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  )}
+                </div>
+
                 {/* Price Breakdown */}
-                <div className="space-y-3 pt-6 text-xs text-dehi-charcoal/80">
+                <div className="space-y-3 pt-4 text-xs text-dehi-charcoal/80">
                   <div className="flex justify-between">
                     <span>Item Price ({effectiveQty} unit{effectiveQty > 1 ? "s" : ""})</span>
-                    <span>{formatPrice(effectiveSubtotal)}</span>
+                    <span>{formatPrice(offerPrice)}</span>
                   </div>
 
                   <div className="flex justify-between text-emerald-800 font-medium">
                     <span className="flex items-center gap-1">
                       <Sparkles className="w-3 h-3 text-emerald-600" />
-                      Special Launch Discount
+                      Independence Day Discount
                     </span>
-                    <span>- {formatPrice(effectiveSavings)}</span>
+                    <span>- {formatPrice(independenceDayDiscount)}</span>
                   </div>
+
+                  {isPromoApplied && (
+                    <div className="flex justify-between text-emerald-800 font-medium">
+                      <span className="flex items-center gap-1">
+                        <Tag className="w-3 h-3 text-emerald-600" />
+                        Promo Discount
+                      </span>
+                      <span>- {formatPrice(promoDiscount)}</span>
+                    </div>
+                  )}
 
                   <div className="flex justify-between">
                     <span>Delivery Charges</span>
@@ -583,7 +713,7 @@ export default function CheckoutPage() {
                   <div className="pt-4 border-t border-dehi-gold/20 flex justify-between items-baseline text-base font-serif font-bold text-dehi-charcoal">
                     <span>Total Amount</span>
                     <span className="text-xl text-dehi-charcoal">
-                      {formatPrice(effectiveSubtotal)}
+                      {formatPrice(finalTotal)}
                     </span>
                   </div>
                 </div>

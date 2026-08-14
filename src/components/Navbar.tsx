@@ -6,6 +6,8 @@ import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import { ShoppingBag, Menu, X, ArrowRight } from "lucide-react";
 import { useCart } from "@/context/CartContext";
+import { QUANTITY_PRICING } from "@/types";
+import { formatPrice } from "@/lib/utils";
 
 const NAV_LINKS = [
   { name: "Home", href: "#hero" },
@@ -112,7 +114,7 @@ export default function Navbar() {
               >
                 <span>Buy Now</span>
                 <span className="text-xs text-dehi-gold group-hover:text-dehi-charcoal">|</span>
-                <span className="font-semibold">₹399</span>
+                <span className="font-semibold">{formatPrice(QUANTITY_PRICING[1])}</span>
               </Link>
 
               {/* Mobile Hamburger Menu Button */}
@@ -191,7 +193,7 @@ export default function Navbar() {
                   onClick={() => setIsMobileMenuOpen(false)}
                   className="w-full flex items-center justify-center gap-2 py-3.5 rounded-full bg-dehi-charcoal text-dehi-ivory text-sm font-medium tracking-wide shadow-md hover:bg-dehi-gold hover:text-dehi-charcoal transition-colors"
                 >
-                  <span>Buy Now — ₹399</span>
+                  <span>Buy Now — {formatPrice(QUANTITY_PRICING[1])}</span>
                   <ArrowRight className="w-4 h-4" />
                 </Link>
                 <p className="text-xs text-center text-dehi-charcoal/60 tracking-wider">

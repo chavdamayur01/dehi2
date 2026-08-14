@@ -3,6 +3,8 @@
 import React from "react";
 import Link from "next/link";
 import { Sparkles, ArrowRight } from "lucide-react";
+import { DEHI_PRODUCT } from "@/types";
+import { formatPrice } from "@/lib/utils";
 
 export default function PromoStrip() {
   return (
@@ -14,19 +16,19 @@ export default function PromoStrip() {
         <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2.5 sm:gap-4 text-xs sm:text-sm font-medium tracking-wider">
           <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-dehi-gold text-dehi-charcoal text-[11px] font-bold uppercase tracking-widest">
             <Sparkles className="w-3 h-3" />
-            SPECIAL LAUNCH OFFER
+            15 AUGUST INDEPENDENCE DAY OFFER
           </span>
 
           <span className="text-dehi-ivory font-serif text-sm sm:text-base tracking-normal">
-            Dehi Body Wash — <strong className="font-semibold text-dehi-gold">₹399</strong>
+            Dehi Body Wash — <strong className="font-semibold text-dehi-gold">{formatPrice(DEHI_PRODUCT.price)}</strong>
           </span>
 
           <span className="text-dehi-ivory/50 line-through">
-            MRP ₹499
+            MRP {formatPrice(DEHI_PRODUCT.mrp)}
           </span>
 
           <span className="text-emerald-400 font-semibold">
-            Save ₹100
+            Save {formatPrice(DEHI_PRODUCT.discount)}
           </span>
         </div>
 

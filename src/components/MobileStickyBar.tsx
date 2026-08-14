@@ -2,15 +2,28 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { ArrowRight } from "lucide-react";
-import { DEHI_PRODUCT } from "@/types";
+import { useCart } from "@/context/CartContext";
+import { ValidQuantity, getQuantityPricing } from "@/types";
 import { formatPrice } from "@/lib/utils";
 
 export default function MobileStickyBar() {
   const [isVisible, setIsVisible] = useState(false);
+  const pathname = usePathname();
+  const { product, quantity } = useCart();
+
+  const effectiveQty = (Math.max(1, Math.min(3, quantity > 0 ? quantity : 1))) as ValidQuantity;
+  const pricing = getQuantityPricing(effectiveQty);
 
   useEffect(() => {
+    // Hide sticky buy bar on checkout and order-success pages where full checkout forms exist
+    if (pathname === "/checkout" || pathname === "/order-success") {
+      setIsVisible(false);
+      return;
+    }
+
     const handleScroll = () => {
       const hero = document.getElementById("hero");
       if (hero) {
@@ -24,8 +37,9 @@ export default function MobileStickyBar() {
     };
 
     window.addEventListener("scroll", handleScroll, { passive: true });
+    handleScroll();
     return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
+  }, [pathname]);
 
   return (
     <AnimatePresence>
@@ -40,14 +54,14 @@ export default function MobileStickyBar() {
           <div className="flex items-center justify-between gap-3 max-w-md mx-auto">
             <div>
               <div className="text-xs font-semibold text-dehi-charcoal">
-                {DEHI_PRODUCT.name}
+                {product.name}
               </div>
               <div className="flex items-baseline gap-1.5">
                 <span className="text-sm font-bold text-dehi-charcoal">
-                  {formatPrice(DEHI_PRODUCT.price)}
+                  {formatPrice(pricing.price)}
                 </span>
                 <span className="text-[11px] text-dehi-charcoal/50 line-through">
-                  {formatPrice(DEHI_PRODUCT.mrp)}
+                  {formatPrice(pricing.baseTotal)}
                 </span>
               </div>
             </div>

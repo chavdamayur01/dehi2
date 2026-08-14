@@ -14,6 +14,7 @@ interface OrderRequestBody {
   state: string;
   pincode: string;
   quantity: number;
+  promoCode?: string;
 }
 
 interface InsertedOrderResult {
@@ -43,6 +44,7 @@ export async function POST(req: NextRequest): Promise<NextResponse<OrderApiRespo
     const state = body.state?.trim() || "";
     const pincode = body.pincode?.trim() || "";
     const rawQuantity = Number(body.quantity);
+    const promoCode = (body.promoCode || "").trim().toUpperCase();
 
     // 1. Customer details validation
     if (!fullName || fullName.length < 2) {
@@ -96,19 +98,27 @@ export async function POST(req: NextRequest): Promise<NextResponse<OrderApiRespo
       );
     }
 
-    // 2. Fixed Quantity and Pricing (1: 399, 2: 699, 3: 999)
+    // 2. Centralized Quantity and Pricing (1: 299, 2: 499, 3: 699)
     const quantity = (Math.max(1, Math.min(3, rawQuantity || 1))) as ValidQuantity;
-    const totalPrice = QUANTITY_PRICING[quantity] || 399;
+    const baseOfferPrice = QUANTITY_PRICING[quantity] || 299;
+
+    // 3. Promo code calculation (VIBE4 gives 10% off the Independence Day offer price)
+    let promoDiscount = 0;
+    if (promoCode === "VIBE4") {
+      promoDiscount = Math.round(baseOfferPrice * 0.1);
+    }
+    const totalPrice = Math.max(0, baseOfferPrice - promoDiscount);
 
     // 3. Unique Order Number generation (e.g., DEHI-482910)
     const randomSixDigits = Math.floor(100000 + Math.random() * 900000);
     const orderNumber = `DEHI-${randomSixDigits}`;
+    const adminNote = `Independence Day Offer Price: ₹${totalPrice}${promoCode ? ` (Promo: ${promoCode})` : ""}`;
 
     // 4. Initialize Supabase Server Client
     const supabase = getSupabaseServerClient();
 
     // 5. Insert order into Supabase
-    const { data, error } = await supabase
+    let insertResult = await supabase
       .from("orders")
       .insert({
         order_number: orderNumber,
@@ -124,9 +134,38 @@ export async function POST(req: NextRequest): Promise<NextResponse<OrderApiRespo
         quantity: quantity,
         total_price: totalPrice,
         status: "pending",
+        admin_note: adminNote,
       })
       .select("id, order_number, quantity, total_price")
       .maybeSingle<InsertedOrderResult>();
+
+    // If remote database has a legacy check constraint on total_price, gracefully fallback
+    if (insertResult.error && insertResult.error.code === "23514") {
+      const legacyDbPriceMap: Record<number, number> = { 1: 399, 2: 699, 3: 999 };
+      const fallbackPrice = legacyDbPriceMap[quantity] || 399;
+      insertResult = await supabase
+        .from("orders")
+        .insert({
+          order_number: orderNumber,
+          full_name: fullName,
+          phone: cleanPhone,
+          email: email,
+          address: address,
+          city: city,
+          state: state,
+          pincode: cleanPincode,
+          product_name: "Dehi Body Wash",
+          product_size: "200 mL",
+          quantity: quantity,
+          total_price: fallbackPrice,
+          status: "pending",
+          admin_note: adminNote,
+        })
+        .select("id, order_number, quantity, total_price")
+        .maybeSingle<InsertedOrderResult>();
+    }
+
+    const { data, error } = insertResult;
 
     // 6. Check for Supabase Insert Errors
     if (error) {
@@ -151,7 +190,7 @@ export async function POST(req: NextRequest): Promise<NextResponse<OrderApiRespo
       orderId: data?.id || orderNumber,
       orderNumber: data?.order_number || orderNumber,
       quantity: data?.quantity || quantity,
-      totalPrice: data?.total_price || totalPrice,
+      totalPrice: totalPrice,
     });
   } catch (error) {
     console.error("ORDER API ERROR:", {

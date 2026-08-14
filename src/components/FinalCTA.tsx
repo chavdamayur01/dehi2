@@ -26,7 +26,7 @@ export default function FinalCTA() {
           >
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-dehi-gold/20 text-dehi-gold border border-dehi-gold/40 text-xs font-semibold tracking-[0.2em] uppercase mb-6">
               <Sparkles className="w-3.5 h-3.5" />
-              SPECIAL LAUNCH OFFER
+              INDEPENDENCE DAY SPECIAL OFFER · 15 AUGUST
             </div>
 
             <h2 className="heading-section font-serif font-normal text-dehi-ivory mb-6">

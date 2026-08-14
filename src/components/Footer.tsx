@@ -125,7 +125,7 @@ export default function Footer() {
               <p className="font-medium text-dehi-ivory">{DEHI_PRODUCT.name}</p>
               <p className="text-xs text-dehi-ivory/60">Volume: {DEHI_PRODUCT.size}</p>
               <p className="text-xs text-dehi-gold font-semibold">
-                Launch Offer: {formatPrice(DEHI_PRODUCT.price)}
+                Independence Day Offer: {formatPrice(DEHI_PRODUCT.price)}
               </p>
               <div className="pt-2">
                 <Link

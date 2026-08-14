@@ -140,6 +140,14 @@ export default function ProductShowcase() {
 
             {/* Price & Quantity Offer Box */}
             <div className="w-full p-5 sm:p-6 rounded-2xl bg-dehi-ivory border border-dehi-gold/30 shadow-luxury mb-8">
+              {/* Independence Day Promotional Banner */}
+              <div className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-dehi-softcream border border-dehi-gold/40 text-dehi-charcoal text-xs font-medium mb-5">
+                <Sparkles className="w-3.5 h-3.5 text-dehi-gold-dark shrink-0" />
+                <span className="font-semibold tracking-wide text-dehi-charcoal">
+                  Independence Day Special Offer · 15 August
+                </span>
+              </div>
+
               {/* Header Price Info */}
               <div className="flex items-baseline justify-between mb-5 pb-4 border-b border-dehi-gold/20">
                 <div className="flex items-baseline gap-3">
@@ -156,15 +164,9 @@ export default function ProductShowcase() {
                     </span>
                   )}
                 </div>
-                {selectedQty > 1 ? (
-                  <span className="px-3 py-1 text-xs font-bold uppercase tracking-wider rounded-md bg-dehi-botanical/15 text-dehi-botanical border border-dehi-botanical/30">
-                    Save {formatPrice(activePricing.savings)}
-                  </span>
-                ) : (
-                  <span className="px-3 py-1 text-xs font-bold uppercase tracking-wider rounded-md bg-dehi-botanical/15 text-dehi-botanical border border-dehi-botanical/30">
-                    Save {formatPrice(DEHI_PRODUCT.discount)}
-                  </span>
-                )}
+                <span className="px-3 py-1 text-xs font-bold uppercase tracking-wider rounded-md bg-dehi-botanical/15 text-dehi-botanical border border-dehi-botanical/30">
+                  Save {formatPrice(activePricing.savings)}
+                </span>
               </div>
 
               {/* Quantity Offers Selector */}

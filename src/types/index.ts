@@ -25,9 +25,9 @@ export interface CartItem {
 export type ValidQuantity = 1 | 2 | 3;
 
 export const QUANTITY_PRICING: Record<ValidQuantity, number> = {
-  1: 399,
-  2: 699,
-  3: 999,
+  1: 299,
+  2: 499,
+  3: 699,
 } as const;
 
 export interface QuantityOffer {
@@ -44,26 +44,27 @@ export const QUANTITY_OFFERS: QuantityOffer[] = [
   {
     quantity: 1,
     title: "1 Body Wash",
-    price: 399,
+    price: 299,
     baseTotal: 499,
-    savings: 100,
+    savings: 200,
+    savingsLabel: "Save ₹200",
   },
   {
     quantity: 2,
     title: "2 Body Washes",
-    price: 699,
+    price: 499,
     baseTotal: 998,
-    savings: 299,
-    savingsLabel: "Save ₹299",
+    savings: 499,
+    savingsLabel: "Save ₹499",
     popular: true,
   },
   {
     quantity: 3,
     title: "3 Body Washes",
-    price: 999,
+    price: 699,
     baseTotal: 1497,
-    savings: 498,
-    savingsLabel: "Save ₹498",
+    savings: 798,
+    savingsLabel: "Save ₹798",
   },
 ];
 
@@ -72,12 +73,14 @@ export function getQuantityPricing(qty: number): {
   price: number;
   savings: number;
   baseTotal: number;
+  savingsLabel: string;
 } {
   const quantity = (Math.max(1, Math.min(3, qty || 1))) as ValidQuantity;
-  const price = QUANTITY_PRICING[quantity] || 399;
+  const price = QUANTITY_PRICING[quantity] || 299;
   const baseTotal = quantity * 499;
   const savings = baseTotal - price;
-  return { quantity, price, savings, baseTotal };
+  const savingsLabel = `Save ₹${savings}`;
+  return { quantity, price, savings, baseTotal, savingsLabel };
 }
 
 export interface CustomerDetails {
@@ -108,8 +111,8 @@ export const DEHI_PRODUCT: Product = {
   tagline: "Care for every Body",
   size: "200 mL",
   mrp: 499,
-  price: 399,
-  discount: 100,
+  price: 299,
+  discount: 200,
   description: "Experience a refreshing shower with Dehi Body Wash. Our sulfate-free and paraben-free formula gently cleanses while helping maintain your skin's natural moisture. Enriched with natural herbal ingredients, it leaves your skin feeling soft, fresh, and hydrated after every wash.",
   shortDescription: "Gentle cleansing. Everyday freshness.",
   images: {

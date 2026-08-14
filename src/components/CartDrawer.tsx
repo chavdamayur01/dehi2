@@ -132,15 +132,9 @@ export default function CartDrawer() {
                           <div className="text-sm font-bold text-dehi-charcoal">
                             {formatPrice(subtotal)}
                           </div>
-                          {quantity > 1 ? (
-                            <div className="text-[11px] text-emerald-700 font-semibold">
-                              Save {formatPrice(bundleSavings)}
-                            </div>
-                          ) : (
-                            <div className="text-[11px] text-dehi-charcoal/50 line-through">
-                              {formatPrice(mrpTotal)}
-                            </div>
-                          )}
+                          <div className="text-[11px] text-emerald-700 font-semibold">
+                            Save {formatPrice(bundleSavings)}
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -148,13 +142,13 @@ export default function CartDrawer() {
 
                   {/* Savings banner */}
                   <div className="p-3 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs flex items-center justify-between font-medium">
-                    <span>Special Launch Offer applied</span>
+                    <span>Independence Day Offer applied</span>
                     <span className="font-bold">Save {formatPrice(savingsTotal)}</span>
                   </div>
 
                   <div className="flex items-center gap-2 text-xs text-dehi-charcoal/60 p-2">
                     <ShieldCheck className="w-4 h-4 text-dehi-gold-dark" />
-                    <span>Free shipping included with launch orders</span>
+                    <span>Free shipping included with Independence Day orders</span>
                   </div>
                 </div>
               ) : (
@@ -187,7 +181,7 @@ export default function CartDrawer() {
                     <span>{formatPrice(subtotal)}</span>
                   </div>
                   <div className="flex justify-between text-dehi-charcoal/70 text-xs">
-                    <span>Launch Savings</span>
+                    <span>Independence Day Savings</span>
                     <span className="text-emerald-700 font-medium">- {formatPrice(savingsTotal)}</span>
                   </div>
                   <div className="flex justify-between text-dehi-charcoal/70 text-xs">
