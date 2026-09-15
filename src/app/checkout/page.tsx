@@ -73,7 +73,7 @@ export default function CheckoutPage() {
   const offerPrice = pricing.price;
   const independenceDayDiscount = pricing.savings;
 
-  const isPromoApplied = appliedPromo === "VIBE4";
+  const isPromoApplied = appliedPromo === "VIBE4" || appliedPromo === "JANVI10";
   const promoDiscount = isPromoApplied ? Math.round(offerPrice * 0.1) : 0;
   const finalTotal = Math.max(0, offerPrice - promoDiscount);
 
@@ -84,8 +84,9 @@ export default function CheckoutPage() {
       setPromoError("Please enter a promo code");
       return;
     }
-    if (trimmed.toUpperCase() === "VIBE4") {
-      setAppliedPromo("VIBE4");
+    const code = trimmed.toUpperCase();
+    if (code === "VIBE4" || code === "JANVI10") {
+      setAppliedPromo(code);
       setPromoError(null);
     } else {
       setPromoError("Invalid promo code. Use code VIBE4 for 10% off");
@@ -166,7 +167,7 @@ export default function CheckoutPage() {
         state: formData.state.trim(),
         pincode: formData.pincode.trim(),
         quantity: effectiveQty,
-        promoCode: isPromoApplied ? "VIBE4" : undefined,
+        promoCode: isPromoApplied ? appliedPromo || undefined : undefined,
       };
 
       const res = await fetch("/api/send-order", {
@@ -658,7 +659,7 @@ export default function CheckoutPage() {
                         <div>
                           <div className="flex items-center gap-1.5">
                             <span className="text-xs font-bold text-emerald-900 tracking-wide">
-                              Promo Code: VIBE4
+                              Promo Code: {appliedPromo}
                             </span>
                             <span className="text-[10px] font-semibold uppercase px-1.5 py-0.5 rounded bg-emerald-200/80 text-emerald-800">
                               ✓ Applied

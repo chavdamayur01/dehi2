@@ -104,7 +104,7 @@ export async function POST(req: NextRequest): Promise<NextResponse<OrderApiRespo
 
     // 3. Promo code calculation (VIBE4 gives 10% off the Independence Day offer price)
     let promoDiscount = 0;
-    if (promoCode === "VIBE4") {
+    if (promoCode === "VIBE4" || promoCode === "JANVI10") {
       promoDiscount = Math.round(baseOfferPrice * 0.1);
     }
     const totalPrice = Math.max(0, baseOfferPrice - promoDiscount);
